@@ -56,11 +56,11 @@ architecture behavioral of cpu is
 		s_dec_ptr,
 		s_inc_val_1, s_inc_val_2,
 		s_dec_val_1, s_dec_val_2,
-		s_loop_start_0, s_loop_start_1, s_loop_start_2, s_loop_start_3, s_loop_start_wait, 
-		s_loop_end_0, s_loop_end_1, s_loop_end_2, s_loop_end_3, s_loop_end_4, s_loop_end_wait, 
+		s_loop_start_0, s_loop_start_1, s_loop_start_2, s_loop_start_3, 
+		s_loop_end_0, s_loop_end_1, s_loop_end_2, s_loop_end_3, s_loop_end_4,
 		s_print,
 		s_input,
-		s_break_0, s_break_1, s_break_2, s_break_wait,
+		s_break_0, s_break_1, s_break_2,
 		s_halt
 	);
 
@@ -142,7 +142,7 @@ begin
 		end if;
 	end process;
 	
-	fsm: process(fsm_state, OUT_BUSY, IN_VLD)
+	fsm: process(fsm_state, OUT_BUSY, IN_VLD, DATA_RDATA, CODE_DATA)
 	begin
 		OUT_WREN <= '0';
 		IN_REQ <= '0';
@@ -170,26 +170,16 @@ begin
 				
 			when s_decode =>
 				case CODE_DATA is
-					when x"3E" =>
-						fsm_nstate <= s_inc_ptr;
-					when x"3C" =>
-						fsm_nstate <= s_dec_ptr;
-					when x"2B" =>
-						fsm_nstate <= s_inc_val_1;
-					when x"2D" =>
-						fsm_nstate <= s_dec_val_1;
-					when x"5B" =>
-						fsm_nstate <= s_loop_start_0;
-					when x"5D" =>
-						fsm_nstate <= s_loop_end_0;
-					when x"2E" =>
-						fsm_nstate <= s_print;
-					when x"2C" =>
-						fsm_nstate <= s_input;
-					when x"7E" =>
-						fsm_nstate <= s_break_0;
-					when x"00" =>
-						fsm_nstate <= s_halt;
+					when x"3E" => fsm_nstate <= s_inc_ptr;
+					when x"3C" => fsm_nstate <= s_dec_ptr;
+					when x"2B" => fsm_nstate <= s_inc_val_1;
+					when x"2D" => fsm_nstate <= s_dec_val_1;
+					when x"5B" => fsm_nstate <= s_loop_start_0;
+					when x"5D" => fsm_nstate <= s_loop_end_0;
+					when x"2E" => fsm_nstate <= s_print;
+					when x"2C" => fsm_nstate <= s_input;
+					when x"7E" => fsm_nstate <= s_break_0;
+					when x"00" => fsm_nstate <= s_halt;
 					when others =>
 						pc_inc <= '1';
 						fsm_nstate <= s_load_1;
@@ -228,11 +218,11 @@ begin
 				fsm_nstate <= s_load_1;
 				
 			when s_print =>
+				DATA_EN <= '1';
 				if (OUT_BUSY = '1') then
 					fsm_nstate <= s_print;
 				else
-					DATA_EN <= '1';
-					OUT_WREN <= '1';
+					OUT_WREN <= '1'; 
 					pc_inc <= '1';
 					fsm_nstate <= s_load_1;
 				end if;
@@ -267,11 +257,8 @@ begin
 					fsm_nstate <= s_load_1;
 				else
 					CODE_EN <= '1';
-					fsm_nstate <= s_loop_start_wait;
+					fsm_nstate <= s_loop_start_3;
 				end if;
-				
-			when s_loop_start_wait =>
-				fsm_nstate <= s_loop_start_3;
 				
 			when s_loop_start_3 =>
 				if (CODE_DATA = x"5B") then
@@ -301,11 +288,8 @@ begin
 					fsm_nstate <= s_load_1;
 				else
 					CODE_EN <= '1';
-					fsm_nstate <= s_loop_end_wait;
+					fsm_nstate <= s_loop_end_3;
 				end if;
-				
-			when s_loop_end_wait =>
-				fsm_nstate <= s_loop_end_3;
 				
 			when s_loop_end_3 =>
 				if (CODE_DATA = x"5D") then --]
@@ -333,12 +317,9 @@ begin
 					fsm_nstate <= s_load_1;
 				else
 					CODE_EN <= '1';
-					fsm_nstate <= s_break_wait;
+					fsm_nstate <= s_break_2;
 				end if;
-				
-			when s_break_wait =>
-				fsm_nstate <= s_break_2;
-				
+
 			when s_break_2 =>
 				if (CODE_DATA = x"5B") then
 					cnt_inc <= '1';
